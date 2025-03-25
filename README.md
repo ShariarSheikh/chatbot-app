@@ -6,7 +6,7 @@
 
 A modern conversational interface that conducts interactive assessments, calculates scores using advanced algorithms, and generates personalized PDF reports. Built with Next.js and TypeScript.
 
-![Chatbot Interface Preview](./public/screenshot.png)
+![Chat Interface Preview](https://i.ibb.co/MxhMJKLV/preview-pane.png)
 
 ## ✨ Features
 

@@ -39,3 +39,31 @@ body {
 .float {
   animation: float 6s ease-in-out infinite;
 }
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.chatbox-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.chatbox-container {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.suggestion-bar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.suggestion-bar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Add to your global CSS */
+.select-none {
+  user-select: none;
+  -webkit-user-select: none;
+}

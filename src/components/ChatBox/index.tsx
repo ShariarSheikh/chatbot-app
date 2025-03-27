@@ -4,43 +4,87 @@ import { useState, useRef, useEffect } from "react";
 import ChatInput from "./ChatInput";
 import MessageContainer, { Avatar } from "./MessageContainer";
 import { SuggestionsBar } from "./SuggestionsBar";
+import { Message } from "@/types/chat";
 
 interface Props {
   onClose: () => void;
 }
 
-export interface Message {
-  text: string;
-  isUser: boolean;
-  timestamp: string;
-}
-
 interface SuggestionItem {
   id: string;
-  text: string;
+  content: string;
 }
 
 // Add this inside your ChatBox component (before the return statement)
 const defaultSuggestions: SuggestionItem[] = [
-  { id: "1", text: "What can you do?" },
-  { id: "2", text: "Tell me about yourself" },
-  { id: "3", text: "How does this work?" },
-  { id: "4", text: "Show me some examples" },
-  { id: "5", text: "What's new?" },
+  { id: "1", content: "What can you do?" },
+  { id: "2", content: "Tell me about yourself" },
+  { id: "3", content: "How does this work?" },
+  { id: "4", content: "Show me some examples" },
+  { id: "5", content: "What's new?" },
 ];
 
 export default function ChatBox({ onClose }: Props) {
-  const [messages, setMessages] = useState([
-    {
-      text: "Hello! How can I help you today?",
-      isUser: false,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    },
-  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [chatState, setChatState] = useState<{
+    email?: string;
+    selectedTopic?: string;
+    answers?: Record<number, string>;
+    currentStep?: string;
+  }>({});
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Initialize chat
+  useEffect(() => {
+    startAssessment();
+  }, []);
+
+  const startAssessment = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+
+      const text = await response.text();
+      const data = text
+        ? JSON.parse(text)
+        : { messages: [], currentStep: "welcome" };
+
+      setTimeout(() => {
+        setMessages(data.messages || []);
+        setChatState({
+          currentStep: data.currentStep || "welcome",
+        });
+        setIsLoading(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to start assessment:", error);
+      setTimeout(() => {
+        setMessages([
+          {
+            content: `
+            <div class="bot-message">
+              <h3 class="font-bold text-lg mb-2">👋 Welcome to Your Assessment!</h3>
+              <p>Let's get started! Please enter your email:</p>
+            </div>
+          `,
+            isUser: false,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+        setChatState({ currentStep: "email" });
+        setIsLoading(false);
+      }, 2000);
+    }
+  };
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -51,34 +95,50 @@ export default function ChatBox({ onClose }: Props) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSendMessage = (message: string) => {
-    // Add user message
-    setMessages((prev) => [
-      ...prev,
-      {
-        text: message,
-        isUser: true,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      },
-    ]);
+  const handleSendMessage = async (message: string) => {
+    // Add user message immediately
+    const userMessage: Message = {
+      content: message,
+      isUser: true,
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
 
-    // Simulate bot response after delay
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          text: "Thanks for your message!",
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        },
-      ]);
-    }, 1000);
+    try {
+      // Send to API
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message,
+          ...chatState,
+          currentStep: chatState.currentStep || "welcome",
+        }),
+      });
+
+      const data = await response.json();
+
+      // Add bot message after 2 seconds
+      setTimeout(() => {
+        setMessages((prev) => [...prev, ...data.messages]);
+        setChatState({
+          email: data.email || chatState.email,
+          selectedTopic: data.selectedTopic || chatState.selectedTopic,
+          answers: data.answers || chatState.answers,
+          currentStep: data.currentStep,
+        });
+        setIsLoading(false);
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 2000);
+    }
   };
 
   const handleSuggestionClick = (text: string) => {
@@ -111,14 +171,19 @@ export default function ChatBox({ onClose }: Props) {
         </div>
 
         {/* Messages Container */}
-        <MessageContainer data={messages} messagesEndRef={messagesEndRef} />
+        <MessageContainer
+          isLoading={isLoading}
+          data={messages}
+          messagesEndRef={messagesEndRef}
+        />
 
         <SuggestionsBar
+          isDisabled={isLoading}
           suggestions={defaultSuggestions}
           onSuggestionClick={handleSuggestionClick}
         />
         {/* Input Component */}
-        <ChatInput onSubmit={handleSendMessage} />
+        <ChatInput isDisabled={isLoading} onSubmit={handleSendMessage} />
       </div>
     </motion.div>
   );

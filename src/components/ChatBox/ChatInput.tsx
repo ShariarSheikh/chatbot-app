@@ -3,14 +3,16 @@ import { useState, useRef, useEffect } from "react";
 
 interface ChatInputProps {
   onSubmit: (message: string) => void;
+  isDisabled: boolean;
 }
 
-const ChatInput = ({ onSubmit }: ChatInputProps) => {
+const ChatInput = ({ onSubmit, isDisabled }: ChatInputProps) => {
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isDisabled) return;
     if (inputValue.trim()) {
       onSubmit(inputValue);
       setInputValue("");
@@ -29,6 +31,7 @@ const ChatInput = ({ onSubmit }: ChatInputProps) => {
     >
       <div className="flex gap-2">
         <input
+          disabled={isDisabled}
           ref={inputRef}
           type="text"
           value={inputValue}
@@ -39,7 +42,7 @@ const ChatInput = ({ onSubmit }: ChatInputProps) => {
         />
         <button
           type="submit"
-          disabled={!inputValue.trim()}
+          disabled={!inputValue.trim() || isDisabled}
           className={`px-5 rounded-lg transition-colors flex items-center justify-center ${
             inputValue.trim()
               ? "bg-indigo-500 hover:bg-indigo-600 text-white cursor-pointer"

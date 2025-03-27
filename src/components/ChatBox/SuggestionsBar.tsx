@@ -5,17 +5,19 @@ import { motion, PanInfo } from "framer-motion";
 
 interface SuggestionItem {
   id: string;
-  text: string;
+  content: string;
 }
 
 interface SuggestionsProps {
   suggestions: SuggestionItem[];
-  onSuggestionClick: (text: string) => void;
+  onSuggestionClick: (content: string) => void;
+  isDisabled: boolean;
 }
 
 export const SuggestionsBar = ({
   suggestions,
   onSuggestionClick,
+  isDisabled,
 }: SuggestionsProps) => {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -35,6 +37,7 @@ export const SuggestionsBar = ({
   };
 
   const handleClick = (text: string) => {
+    if (isDisabled) return;
     if (!isDragging) {
       onSuggestionClick(text);
     }
@@ -53,11 +56,13 @@ export const SuggestionsBar = ({
         {suggestions.map((suggestion) => (
           <motion.button
             key={suggestion.id}
-            onClick={() => handleClick(suggestion.text)}
-            className="flex-shrink-0 px-3 py-2 text-sm rounded-lg bg-slate-700/60 hover:bg-slate-600/80 transition-colors text-white whitespace-nowrap cursor-grab select-none"
+            onClick={() => handleClick(suggestion.content)}
+            className={`
+              ${isDisabled ? "cursor-not-allowed opacity-60" : "opacity-100"}
+              flex-shrink-0 px-3 py-2 text-sm rounded-lg bg-slate-700/60 hover:bg-slate-600/80 transition-colors text-white whitespace-nowrap cursor-grab select-none`}
             whileTap={{ scale: 0.98 }}
           >
-            {suggestion.text}
+            {suggestion.content}
           </motion.button>
         ))}
       </motion.div>

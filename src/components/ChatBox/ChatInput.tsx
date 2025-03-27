@@ -31,7 +31,6 @@ const ChatInput = ({ onSubmit, isDisabled }: ChatInputProps) => {
     >
       <div className="flex gap-2">
         <input
-          disabled={isDisabled}
           ref={inputRef}
           type="text"
           value={inputValue}

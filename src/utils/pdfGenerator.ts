@@ -1,10 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas-pro";
+import html2canvas from "html2canvas";
 
-// Color replacement configuration
-const COLOR_REPLACEMENTS = {
+type StyleProperty =
+  | "background"
+  | "backgroundColor"
+  | "color"
+  | "borderColor"
+  | "borderTopColor"
+  | "borderRightColor"
+  | "borderBottomColor"
+  | "borderLeftColor";
+
+const COLOR_REPLACEMENTS: Record<string, string> = {
   // Gradients
-  "linear-gradient(to right, #6366F1, #8B5CF6)": "#7367F0", // Purple mix
+  "linear-gradient(to right, #6366F1, #8B5CF6)": "#7367F0",
   "linear-gradient(to right, var(--primary), var(--secondary))": "#7367F0",
 
   // Modern color functions
@@ -18,42 +28,44 @@ const COLOR_REPLACEMENTS = {
 };
 
 const replaceUnsupportedColors = (element: HTMLElement) => {
-  // Replace inline styles
+  // Type-safe style property access
   const style = element.style;
-  for (const prop of [
+  const properties: StyleProperty[] = [
     "background",
     "backgroundColor",
     "color",
     "borderColor",
-  ]) {
-    if (
-      style[prop] &&
-      Object.keys(COLOR_REPLACEMENTS).some((unsupported) =>
-        style[prop].includes(unsupported)
-      )
-    ) {
-      let newValue = style[prop];
+    "borderTopColor",
+    "borderRightColor",
+    "borderBottomColor",
+    "borderLeftColor",
+  ];
+
+  properties.forEach((prop) => {
+    const value = style[prop as any]; // Temporary any cast
+    if (typeof value === "string" && value) {
+      let newValue = value;
       for (const [unsupported, replacement] of Object.entries(
         COLOR_REPLACEMENTS
       )) {
-        newValue = newValue.replace(unsupported, replacement);
+        if (newValue.includes(unsupported)) {
+          newValue = newValue.replace(unsupported, replacement);
+        }
       }
-      style[prop] = newValue;
+      style[prop as any] = newValue; // Apply the fixed value
     }
-  }
+  });
 
-  // Replace class-based colors by adding inline styles
+  // Handle computed styles
   const computed = window.getComputedStyle(element);
-  if (
-    Object.keys(COLOR_REPLACEMENTS).some((unsupported) =>
-      computed.background.includes(unsupported)
-    )
-  ) {
+  if (computed.background) {
     let background = computed.background;
     for (const [unsupported, replacement] of Object.entries(
       COLOR_REPLACEMENTS
     )) {
-      background = background.replace(unsupported, replacement);
+      if (background.includes(unsupported)) {
+        background = background.replace(unsupported, replacement);
+      }
     }
     element.style.background = background;
   }
@@ -70,20 +82,22 @@ export const generateAssessmentPDF = async (
       return;
     }
 
-    // Create a clean clone
+    // Create and prepare clone
     const clone = element.cloneNode(true) as HTMLElement;
     clone.style.position = "fixed";
     clone.style.left = "-9999px";
     clone.style.top = "0";
-    clone.style.width = "794px"; // A4 width in pixels
+    clone.style.width = "794px";
     clone.style.zIndex = "99999";
     document.body.appendChild(clone);
 
-    // Process all elements in the clone
+    // Process colors
     replaceUnsupportedColors(clone);
-    clone
-      .querySelectorAll("*")
-      .forEach((el) => replaceUnsupportedColors(el as HTMLElement));
+    clone.querySelectorAll("*").forEach((el) => {
+      if (el instanceof HTMLElement) {
+        replaceUnsupportedColors(el);
+      }
+    });
 
     // Remove interactive elements
     clone.querySelectorAll("button, a, [onclick]").forEach((el) => el.remove());
@@ -91,9 +105,8 @@ export const generateAssessmentPDF = async (
     const canvas = await html2canvas(clone, {
       scale: 2,
       logging: true,
-      backgroundColor: "#F5F7FF", // Matches your light background
+      backgroundColor: "#F5F7FF",
       useCORS: true,
-      allowTaint: true,
       ignoreElements: (el) => el.hasAttribute("data-ignore-pdf"),
     });
 
@@ -105,10 +118,12 @@ export const generateAssessmentPDF = async (
     pdf.save(`${fileName}.pdf`);
   } catch (error) {
     console.error("PDF generation failed:", error);
-    alert("Failed to generate PDF. Please try again or contact support.");
+    alert("PDF generation failed. Please try again or contact support.");
   } finally {
-    // Clean up
-    const clones = document.querySelectorAll('[style*="left: -9999px"]');
-    clones.forEach((clone) => document.body.removeChild(clone));
+    document.querySelectorAll('[style*="left: -9999px"]').forEach((el) => {
+      if (el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    });
   }
 };

@@ -257,7 +257,12 @@ export async function POST(req: Request) {
       }
 
       default:
-        return handleError("Invalid step");
+        return createResponse({
+          messages: [
+            BASIC_QA_MESSAGE(BASIC_QA_findAnswer(message as string).answer),
+          ],
+          currentStep: "welcome",
+        });
     }
   } catch (error) {
     console.error("API Error:", error);

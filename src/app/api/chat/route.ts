@@ -7,13 +7,15 @@ import {
   formatQuestion,
   calculateScore,
   WELCOME_MESSAGE,
-  INVALID_EMAIL_MESSAGE,
+  NEED_EMAIL_MESSAGE,
   getTopicSelectionMessage,
   INVALID_TOPIC_MESSAGE,
   EXIT_MESSAGE,
   getInvalidAnswerMessage,
   getAssessmentResults,
+  BASIC_QA_MESSAGE,
 } from "@/utils/chatHelpers";
+import { BASIC_QA_findAnswer } from "@/data/othersUserInput";
 
 interface SuccessResponseParams {
   messages: Message[];
@@ -91,9 +93,12 @@ export async function POST(req: Request) {
     }
 
     // Handle special commands
-    if (message?.toLowerCase() === "start") {
+    if (
+      message?.toLowerCase() === "start" ||
+      message?.toLocaleLowerCase() === "start assessment"
+    ) {
       return createResponse({
-        messages: [WELCOME_MESSAGE],
+        messages: [NEED_EMAIL_MESSAGE],
         currentStep: "email",
       });
     }
@@ -101,9 +106,15 @@ export async function POST(req: Request) {
     // Assessment flow
     switch (currentStep) {
       case "welcome":
+        if (!message)
+          return createResponse({
+            messages: [WELCOME_MESSAGE],
+            currentStep: "welcome",
+          });
+        // Custom message
         return createResponse({
-          messages: [WELCOME_MESSAGE],
-          currentStep: "email",
+          messages: [BASIC_QA_MESSAGE(BASIC_QA_findAnswer(message).answer)],
+          currentStep: "welcome",
         });
 
       case "email":
@@ -112,7 +123,7 @@ export async function POST(req: Request) {
         const normalizedEmail = message.toLowerCase();
         if (!/\S+@\S+\.\S+/.test(normalizedEmail)) {
           return createResponse({
-            messages: [INVALID_EMAIL_MESSAGE],
+            messages: [NEED_EMAIL_MESSAGE],
             currentStep: "email",
           });
         }

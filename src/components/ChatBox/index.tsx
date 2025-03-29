@@ -17,11 +17,12 @@ interface SuggestionItem {
 
 // Add this inside your ChatBox component (before the return statement)
 const defaultSuggestions: SuggestionItem[] = [
-  { id: "1", content: "What can you do?" },
-  { id: "2", content: "Tell me about yourself" },
-  { id: "3", content: "How does this work?" },
-  { id: "4", content: "Show me some examples" },
-  { id: "5", content: "What's new?" },
+  { id: "1", content: "Start Assessment" },
+  { id: "2", content: "What can you do?" },
+  { id: "3", content: "Tell me about yourself" },
+  { id: "4", content: "How does this work?" },
+  { id: "5", content: "Show me some examples" },
+  { id: "6", content: "What's new?" },
 ];
 
 export default function ChatBox({ onClose }: Props) {
@@ -64,7 +65,7 @@ export default function ChatBox({ onClose }: Props) {
           currentStep: data.currentStep || "welcome",
         });
         setIsLoading(false);
-      }, 2000);
+      }, 1000);
     } catch (error) {
       console.error("Failed to start assessment:", error);
       setTimeout(() => {
@@ -82,7 +83,7 @@ export default function ChatBox({ onClose }: Props) {
         ]);
         setChatState({ currentStep: "email" });
         setIsLoading(false);
-      }, 2000);
+      }, 1000);
     }
   };
 
@@ -132,17 +133,47 @@ export default function ChatBox({ onClose }: Props) {
           currentStep: data.currentStep,
         });
         setIsLoading(false);
-      }, 2000);
+      }, 1000);
     } catch (error) {
       console.error("Failed to send message:", error);
       setTimeout(() => {
         setIsLoading(false);
-      }, 2000);
+      }, 1000);
     }
   };
 
   const handleSuggestionClick = (text: string) => {
     handleSendMessage(text);
+  };
+
+  const handleTopicSelect = (topic: string) => {
+    setIsLoading(true);
+    // Simulate API call
+    setTimeout(() => {
+      setChatState((prev) => ({
+        ...prev,
+        currentStep: "assessment",
+      }));
+
+      // Add a mock bot response
+      setMessages((prev) => [
+        ...prev,
+        {
+          content: `
+          <div class="bot-message">
+            <p>Great choice! Let's begin the ${topic} assessment.</p>
+          </div>
+          `,
+          isUser: false,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        },
+      ]);
+      setIsLoading(false);
+      handleSuggestionClick(topic);
+    }, 1000);
   };
 
   return (
@@ -175,6 +206,7 @@ export default function ChatBox({ onClose }: Props) {
           isLoading={isLoading}
           data={messages}
           messagesEndRef={messagesEndRef}
+          onTopicSelect={handleTopicSelect}
         />
 
         <SuggestionsBar
